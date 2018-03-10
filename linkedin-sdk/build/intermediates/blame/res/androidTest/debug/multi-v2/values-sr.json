@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "/home/wael/Desktop/AndroidCodingbestpractices/linkedin-sdk/build/intermediates/incremental/mergeDebugAndroidTestResources/merged.dir/values-sr/values-sr.xml",
+            "map": [
+                {
+                    "source": "/home/wael/.gradle/caches/transforms-1/files-1.1/support-compat-27.1.0.aar/34c3fd378ebd9199ebfde0ec52450c46/res/values-sr/values-sr.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/login_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="wael.ouni.apps.androidcodingbestpractices.LoginActivity">
+
+    <TextView
+        android:id="@+id/ignore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="10dp"
+        android:text="@string/ignore"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintRight_toRightOf="parent" />
+
+    <ImageView
+        android:id="@+id/home_icon"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:contentDescription="@string/clean_code_icon"
+        android:src="@drawable/icon2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ignore" />
+
+
+    <com.facebook.login.widget.LoginButton
+        android:id="@+id/facebook_login_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="50dp"
+        android:layout_marginTop="20dp"
+
+        app:layout_constraintLeft_toLeftOf="@id/home_icon"
+        app:layout_constraintRight_toRightOf="@id/home_icon"
+        app:layout_constraintTop_toBottomOf="@id/home_icon" />
+
+    <ImageView
+        android:id="@+id/linkedin_login_btn"
+        android:layout_width="0dp"
+        android:layout_height="30dp"
+        android:layout_marginTop="20dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/linkedin_login"
+        app:layout_constraintLeft_toLeftOf="@id/facebook_login_btn"
+        app:layout_constraintRight_toRightOf="@id/facebook_login_btn"
+        app:layout_constraintTop_toBottomOf="@id/facebook_login_btn" />
+
+    <Button
+        android:id="@+id/gmail_login_btn"
+        android:layout_width="0dp"
+        android:layout_height="30dp"
+        android:layout_marginTop="20dp"
+        app:layout_constraintLeft_toLeftOf="@id/linkedin_login_btn"
+        app:layout_constraintRight_toRightOf="@id/linkedin_login_btn"
+        app:layout_constraintTop_toBottomOf="@id/linkedin_login_btn" />
+
+</android.support.constraint.ConstraintLayout>
