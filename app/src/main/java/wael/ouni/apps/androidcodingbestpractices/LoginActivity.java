@@ -17,13 +17,18 @@ import com.facebook.FacebookException;
 import com.facebook.internal.CallbackManagerImpl;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.SignInButton;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.Task;
 import com.linkedin.platform.LISession;
 import com.linkedin.platform.LISessionManager;
 import com.linkedin.platform.errors.LIAuthError;
 import com.linkedin.platform.listeners.AuthListener;
 import com.linkedin.platform.utils.Scope;
-
-import timber.log.Timber;
 
 /**
  * Created by wael on 10/03/18.
@@ -32,14 +37,29 @@ import timber.log.Timber;
 public class LoginActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String LINKEDIN_TOKEN = "linkedin_token";
     private static final String FACEBOOK_TOKEN = "facebook_token";
+    private static final int RC_SIGN_IN = 11;
+    private static final String GOOGLE_ACCOUNT = "google_account";
     CallbackManager mCallbackManager;
+    private GoogleSignInClient mGoogleSignInClient;
 
+    private SignInButton mLoginGoogleButton;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+        mLoginGoogleButton = findViewById(R.id.google_login_btn);
+        mLoginGoogleButton.setSize(SignInButton.SIZE_STANDARD);
+        mLoginGoogleButton.setOnClickListener(this);
+        // Configure sign-in to request the user's ID, email address, and basic
+// profile. ID and basic profile are included in DEFAULT_SIGN_IN.
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .build();
+
+// Build a GoogleSignInClient with the options specified by gso.
+        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
         final ConstraintLayout loginLayout = findViewById(R.id.login_layout);
         setBlurBackground(loginLayout);
@@ -72,24 +92,63 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             }
         });
 
-        boolean loggedIn = AccessToken.getCurrentAccessToken() == null;
+    }
 
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        CheckValidAccountIsConnected();
+
+    }
+
+    private void CheckValidAccountIsConnected() {
+        // Check for existing Google Sign In account, if the user is already signed in
+// the GoogleSignInAccount will be non-null.
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+        boolean loggedIn = AccessToken.getCurrentAccessToken() != null || account != null ||
+                LISessionManager.getInstance(getApplicationContext()).getSession().isValid();
         if (loggedIn) {
-
+            GoToHomeScreen();
         }
+    }
+
+    private void signIn() {
+        Intent signInIntent = mGoogleSignInClient.getSignInIntent();
+        startActivityForResult(signInIntent, RC_SIGN_IN);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        CheckValidAccountIsConnected();
         if (requestCode == CallbackManagerImpl.RequestCodeOffset.Login.toRequestCode()) {
             mCallbackManager.onActivityResult(requestCode, resultCode, data);
-        } else {
-            LISessionManager.getInstance(getApplicationContext()).onActivityResult(this,
-                    requestCode, resultCode, data);
-            Timber.d("onActivityResult() called with: requestCode = [" + requestCode + "], resultCode = [" + resultCode + "], data = [" + data + "]");
-        }
+        } else // Result returned from launching the Intent from GoogleSignInClient.getSignInIntent(...);
+            if (requestCode == RC_SIGN_IN) {
+                // The Task returned from this call is always completed, no need to attach
+                // a listener.
+
+//                Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+//                handleSignInResult(task);
+            } else {
+                LISessionManager.getInstance(getApplicationContext()).onActivityResult(this,
+                        requestCode, resultCode, data);
+            }
+
         super.onActivityResult(requestCode, resultCode, data);
     }
+//
+//    private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
+//        try {
+//            GoogleSignInAccount account = completedTask.getResult(ApiException.class);
+//            // Signed in successfully, show authenticated UI.
+//            GoToHomeScreen(account);
+//        } catch (ApiException e) {
+//            // The ApiException status code indicates the detailed failure reason.
+//            // Please refer to the GoogleSignInStatusCodes class reference for more information.
+////            updateUI(null);
+//        }
+//    }
 
 
     // Build the list of member permissions our LinkedIn session requires
@@ -133,6 +192,10 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             case R.id.ignore:
                 GoToHomeScreen();
                 break;
+
+            case R.id.google_login_btn:
+                signIn();
+                break;
         }
     }
 
@@ -140,16 +203,27 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         Intent homeIntent = new Intent(LoginActivity.this, HomeActivity.class);
         homeIntent.putExtra(FACEBOOK_TOKEN, accessToken);
         startActivity(homeIntent);
+        finish();
     }
 
     private void GoToHomeScreen(com.linkedin.platform.AccessToken accessToken) {
         Intent homeIntent = new Intent(LoginActivity.this, HomeActivity.class);
         homeIntent.putExtra(LINKEDIN_TOKEN, accessToken);
         startActivity(homeIntent);
+        finish();
     }
+
+    private void GoToHomeScreen(GoogleSignInAccount account) {
+        Intent homeIntent = new Intent(LoginActivity.this, HomeActivity.class);
+        homeIntent.putExtra(GOOGLE_ACCOUNT, account);
+        startActivity(homeIntent);
+        finish();
+    }
+
     private void GoToHomeScreen() {
         Intent homeIntent = new Intent(LoginActivity.this, HomeActivity.class);
         startActivity(homeIntent);
+        finish();
     }
 
 

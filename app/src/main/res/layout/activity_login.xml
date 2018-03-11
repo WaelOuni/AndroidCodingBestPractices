@@ -33,9 +33,8 @@
     <com.facebook.login.widget.LoginButton
         android:id="@+id/facebook_login_btn"
         android:layout_width="wrap_content"
-        android:layout_height="50dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
-
         app:layout_constraintLeft_toLeftOf="@id/home_icon"
         app:layout_constraintRight_toRightOf="@id/home_icon"
         app:layout_constraintTop_toBottomOf="@id/home_icon" />
@@ -43,7 +42,7 @@
     <ImageView
         android:id="@+id/linkedin_login_btn"
         android:layout_width="0dp"
-        android:layout_height="30dp"
+        android:layout_height="40dp"
         android:layout_marginTop="20dp"
         android:scaleType="fitXY"
         android:src="@drawable/linkedin_login"
@@ -51,10 +50,10 @@
         app:layout_constraintRight_toRightOf="@id/facebook_login_btn"
         app:layout_constraintTop_toBottomOf="@id/facebook_login_btn" />
 
-    <Button
-        android:id="@+id/gmail_login_btn"
+    <com.google.android.gms.common.SignInButton
+        android:id="@+id/google_login_btn"
         android:layout_width="0dp"
-        android:layout_height="30dp"
+        android:layout_height="40dp"
         android:layout_marginTop="20dp"
         app:layout_constraintLeft_toLeftOf="@id/linkedin_login_btn"
         app:layout_constraintRight_toRightOf="@id/linkedin_login_btn"

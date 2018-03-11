@@ -1,7 +1,12 @@
 <resources>
     <string name="facebook_app_id">171607826978193</string>
     <string name="fb_login_protocol_scheme">fb171607826978193</string>
+
+    <string name="server_client_id">1052816417438-mfbq9hua4kf6g9r6nfsise8c5c19uucj.apps.googleusercontent.com</string>
+
     <string name="app_name">Android Coding best practices</string>
     <string name="ignore">ignore</string>
     <string name="clean_code_icon">clean code icon</string>
+    <string name="sign_out">Sign out</string>
+    <string name="sign_in">Sign in</string>
 </resources>
