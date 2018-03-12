@@ -26,6 +26,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.linkedin.platform.LISession;
 import com.linkedin.platform.LISessionManager;
 import com.linkedin.platform.errors.LIAuthError;
 import com.linkedin.platform.listeners.AuthListener;
@@ -39,9 +40,9 @@ import com.linkedin.platform.utils.Scope;
  */
 
 public class LoginActivity extends AppCompatActivity implements View.OnClickListener {
-    private static final String LINKEDIN_TOKEN = "linkedin_token";
-    private static final String FACEBOOK_TOKEN = "facebook_token";
-    private static final String GOOGLE_ACCOUNT = "google_account";
+    public static final String LINKEDIN_TOKEN = "linkedin_token";
+    public static final String FACEBOOK_TOKEN = "facebook_token";
+    public static final String GOOGLE_ACCOUNT = "google_account";
     private static final int RC_SIGN_IN = 11;
     CallbackManager mCallbackManager;
     private ConstraintLayout mLoginLayout;
@@ -76,18 +77,14 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         if (intent != null) {
             boolean booleanExtra = intent.getBooleanExtra(HomeActivity.SIGN_OUT_ARG, false);
             if (booleanExtra) {
-
-
                 // Check for existing Google Sign In account, if the user is already signed in
                 // the GoogleSignInAccount will be non-null.
                 GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
                 if (account != null) {
-
                     mGoogleSignInClient.signOut()
                             .addOnCompleteListener(this, new OnCompleteListener<Void>() {
                                 @Override
                                 public void onComplete(@NonNull Task<Void> task) {
-
                                 }
                             });
                 } else if (AccessToken.getCurrentAccessToken() != null) {
@@ -96,7 +93,8 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                 } else if (LISessionManager.getInstance(getApplicationContext()).getSession().isValid()) {
                     //disconnect linkedin
                     LISessionManager.getInstance(getApplicationContext()).clearSession();
-                } else throw new RuntimeException("Any account signed to the app");
+                }
+                //else throw new RuntimeException("Any account signed to the app");
             }
         }
         CheckValidAccountIsConnected();
@@ -165,11 +163,16 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         // Check for existing Google Sign In account, if the user is already signed in
         // the GoogleSignInAccount will be non-null.
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
-
-        boolean loggedIn = AccessToken.getCurrentAccessToken() != null || account != null ||
-                LISessionManager.getInstance(getApplicationContext()).getSession().isValid();
-        if (loggedIn) {
-            GoToHomeScreen();
+        AccessToken currentFacebookAccessToken = AccessToken.getCurrentAccessToken();
+        LISession session = LISessionManager.getInstance(getApplicationContext()).getSession();
+        if (currentFacebookAccessToken != null) {
+            GoToHomeScreen(currentFacebookAccessToken);
+        } else if (account != null) {
+            GoToHomeScreen(account);
+        } else if (session.isValid()) {
+            GoToHomeScreen(session.getAccessToken());
+        } else {
+//            throw new RuntimeException("Any account supported");
         }
     }
 
