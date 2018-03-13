@@ -1,5 +1,4 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_first_fragment"
@@ -13,17 +12,9 @@
             android:id="@+id/nav_third_fragment"
             android:icon="@drawable/icon"
             android:title="Third" />
-        <item android:title="Sub items">
-            <menu>
-                <group android:checkableBehavior="single">
-                    <item
-                        android:icon="@drawable/icon"
-                        android:title="Sub item 1" />
-                    <item
-                        android:icon="@drawable/icon"
-                        android:title="Sub item 2" />
-                </group>
-            </menu>
-        </item>
+        <item
+            android:id="@+id/nav_log_out"
+            android:icon="@drawable/ic_power_settings_new_black_24dp"
+            android:title="Log Out" />
     </group>
 </menu>

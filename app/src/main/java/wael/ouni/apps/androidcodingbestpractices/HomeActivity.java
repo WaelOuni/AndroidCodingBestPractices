@@ -8,11 +8,9 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
-import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
-import android.view.View;
 
 import com.facebook.AccessToken;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -27,14 +25,9 @@ public class HomeActivity extends AppCompatActivity {
 
     public static final String SIGN_OUT_ARG = "sign_out";
 
-
     private DrawerLayout mDrawer;
     private Toolbar toolbar;
     private NavigationView nvDrawer;
-
-    // Make sure to be using android.support.v7.app.ActionBarDrawerToggle version.
-    // The android.support.v4.app.ActionBarDrawerToggle has been deprecated.
-    private ActionBarDrawerToggle drawerToggle;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -42,15 +35,17 @@ public class HomeActivity extends AppCompatActivity {
         setContentView(R.layout.activity_home);
         getTokenAccount();
 
-
         // Set a Toolbar to replace the ActionBar.
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         ActionBar actionbar = getSupportActionBar();
 
         actionbar.setDisplayHomeAsUpEnabled(true);
         actionbar.setHomeAsUpIndicator(R.drawable.ic_menu);
+
+        getSupportFragmentManager().beginTransaction().replace(R.id.content_home,
+                new FirstFragment()).commit();
 
         // Find our drawer view
         mDrawer = findViewById(R.id.drawer_layout);
@@ -76,7 +71,7 @@ public class HomeActivity extends AppCompatActivity {
     public void selectDrawerItem(MenuItem menuItem) {
         // Create a new fragment and specify the fragment to show based on nav item clicked
         Fragment fragment = null;
-        Class fragmentClass;
+        Class fragmentClass = FirstFragment.class;
         switch (menuItem.getItemId()) {
             case R.id.nav_first_fragment:
                 fragmentClass = FirstFragment.class;
@@ -87,6 +82,9 @@ public class HomeActivity extends AppCompatActivity {
             case R.id.nav_third_fragment:
                 fragmentClass = ThirdFragment.class;
                 break;
+            case R.id.nav_log_out:
+                signOut();
+                break;
             default:
                 fragmentClass = FirstFragment.class;
         }
@@ -96,10 +94,9 @@ public class HomeActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         // Insert the fragment by replacing any existing fragment
         FragmentManager fragmentManager = getSupportFragmentManager();
-        fragmentManager.beginTransaction().replace(R.id.flContent, fragment).commit();
+        fragmentManager.beginTransaction().replace(R.id.content_home, fragment).commit();
 
         // Highlight the selected item has been done by NavigationView
         menuItem.setChecked(true);
@@ -117,7 +114,6 @@ public class HomeActivity extends AppCompatActivity {
                 mDrawer.openDrawer(GravityCompat.START);
                 return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -141,7 +137,7 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
-    public void signOut(View view) {
+    public void signOut() {
         Intent signOutIntent = new Intent(this, LoginActivity.class);
         signOutIntent.putExtra(SIGN_OUT_ARG, true);
         startActivity(signOutIntent);

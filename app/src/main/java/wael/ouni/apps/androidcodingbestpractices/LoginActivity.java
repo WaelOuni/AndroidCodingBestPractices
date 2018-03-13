@@ -15,6 +15,8 @@ import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
 import com.facebook.internal.CallbackManagerImpl;
 import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
@@ -31,6 +33,14 @@ import com.linkedin.platform.LISessionManager;
 import com.linkedin.platform.errors.LIAuthError;
 import com.linkedin.platform.listeners.AuthListener;
 import com.linkedin.platform.utils.Scope;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import timber.log.Timber;
 
 /**
  * Login interface
@@ -106,7 +116,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     private void initViews() {
         mLoginLayout = findViewById(R.id.login_layout);
         mLoginButton = findViewById(R.id.facebook_login_btn);
-        mLoginButton.setReadPermissions("email");
+        mLoginButton.setReadPermissions("public_profile");
         ImageView loginLinkedinButton = findViewById(R.id.linkedin_login_btn);
         loginLinkedinButton.setOnClickListener(this);
 
@@ -183,9 +193,44 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         // Callback registration
         mLoginButton.registerCallback(mCallbackManager, new FacebookCallback<LoginResult>() {
             @Override
-            public void onSuccess(LoginResult loginResult) {
+            public void onSuccess(final LoginResult loginResult) {
                 // App code
-                GoToHomeScreen(loginResult.getAccessToken());
+                GraphRequest graphRequest = GraphRequest.newMeRequest(
+                        loginResult.getAccessToken(),
+                        new GraphRequest.GraphJSONObjectCallback() {
+                            @Override
+                            public void onCompleted(JSONObject object, GraphResponse response) {
+                                try {
+                                    // Application code
+                                    String id = object.getString("id");
+                                    String email = object.getString("email");
+                                    String name = object.getString("name");
+                                    URL imageURL;
+
+                                    String token = loginResult.getAccessToken().getToken();
+                                    Timber.v("Login:accessToken %s", token);
+                                    Timber.v("Login:id %s", id);
+                                    Timber.v("Login:email %s", email);
+                                    Timber.v("Login:name %s", name);
+
+                                    try {
+                                        imageURL = new URL("https://graph.facebook.com/me/picture?access_token=" + token);
+                                        Timber.v("Login:picture %s", imageURL.toString());
+                                    } catch (MalformedURLException e) {
+                                        e.printStackTrace();
+                                    }
+
+                                    GoToHomeScreen(loginResult.getAccessToken());
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+
+                Bundle parameters = new Bundle();
+                parameters.putString("fields", "id,name,email");
+                graphRequest.setParameters(parameters);
+                graphRequest.executeAsync();
             }
 
             @Override
