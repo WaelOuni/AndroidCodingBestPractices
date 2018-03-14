@@ -28,9 +28,13 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.linkedin.platform.APIHelper;
 import com.linkedin.platform.LISession;
 import com.linkedin.platform.LISessionManager;
+import com.linkedin.platform.errors.LIApiError;
 import com.linkedin.platform.errors.LIAuthError;
+import com.linkedin.platform.listeners.ApiListener;
+import com.linkedin.platform.listeners.ApiResponse;
 import com.linkedin.platform.listeners.AuthListener;
 import com.linkedin.platform.utils.Scope;
 
@@ -95,6 +99,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                             .addOnCompleteListener(this, new OnCompleteListener<Void>() {
                                 @Override
                                 public void onComplete(@NonNull Task<Void> task) {
+                                    //Update ui after sign out google
                                 }
                             });
                 } else if (AccessToken.getCurrentAccessToken() != null) {
@@ -157,11 +162,11 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             case R.id.linkedin_login_btn:
                 signInLinkedin();
                 break;
-            case R.id.ignore:
-                GoToHomeScreen();
-                break;
             case R.id.google_login_btn:
                 signInGoogle();
+                break;
+            case R.id.ignore:
+                GoToHomeScreen();
                 break;
         }
     }
@@ -247,20 +252,59 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
      * Sign in with linkedin account
      */
     private void signInLinkedin() {
-        LISessionManager.getInstance(getApplicationContext()).init(this, buildScope(), new AuthListener() {
-            @Override
-            public void onAuthSuccess() {
-                // Authentication was successful.  You can now do
-                // other calls with the SDK.
-                GoToHomeScreen(LISessionManager.getInstance(getApplicationContext()).
-                        getSession().getAccessToken());
-            }
+        LISessionManager.getInstance(getApplicationContext()).init(this, buildScope(),
+                new AuthListener() {
+                    @Override
+                    public void onAuthSuccess() {
+                        final String host = "api.linkedin.com";
+                        String url ="https://" + host+ "/v1/people/~:(email-address,formatted-name,phone-numbers,picture-urls::(original))";
+                        APIHelper apiHelper = APIHelper.getInstance(getApplicationContext());
+                        apiHelper.getRequest(LoginActivity.this, url, new ApiListener() {
+                            @Override
+                            public void onApiSuccess(ApiResponse apiResponse) {
+                                // Success
+                                JSONObject responseDataAsJson = apiResponse.getResponseDataAsJson();
+                                String response = apiResponse.getResponseDataAsString();
+//                                try {
+//                                    String id = responseDataAsJson.getString("id");
+////                                    String email = responseDataAsJson.getString("email-address");
+//                                    String name = responseDataAsJson.getString("first-name")
+//                                            + " " + responseDataAsJson.getString("last-name");
+//                                    String picUrl = responseDataAsJson.getString("picture-urls::(original)");
+//                                    URL imageURL;
+//
+//                                    Timber.v("Login:id %s", id);
+////                                    Timber.v("Login:email %s", email);
+//                                    Timber.v("Login:name %s", name);
+//                                    try {
+//                                        imageURL = new URL(picUrl);
+//                                        Timber.v("Login:picture %s", imageURL.toString());
+//                                    } catch (MalformedURLException e) {
+//                                        e.printStackTrace();
+//                                    }
+//                                } catch (JSONException e) {
+//                                    e.printStackTrace();
+//                                }
+                            }
 
-            @Override
-            public void onAuthError(LIAuthError error) {
-                // Handle authentication errors
-            }
-        }, true);
+                            @Override
+                            public void onApiError(LIApiError liApiError) {
+                                // Error making GET request!
+                            }
+                        });
+
+
+                        // Authentication was successful.  You can now do
+                        // other calls with the SDK.
+                        GoToHomeScreen(LISessionManager.getInstance(getApplicationContext()).
+                                getSession().getAccessToken());
+                    }
+
+                    @Override
+                    public void onAuthError(LIAuthError error) {
+                        // Handle authentication errors
+                    }
+                }, true);
     }
 
     /**
@@ -273,7 +317,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
     // Build the list of member permissions our LinkedIn session requires
     private static Scope buildScope() {
-        return Scope.build(Scope.R_BASICPROFILE, Scope.W_SHARE);
+        return Scope.build(Scope.R_BASICPROFILE, Scope.R_EMAILADDRESS);
     }
 
     /**

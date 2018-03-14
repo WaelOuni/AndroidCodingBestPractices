@@ -1,5 +1,6 @@
 package wael.ouni.apps.androidcodingbestpractices;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
@@ -11,9 +12,17 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.facebook.AccessToken;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.linkedin.platform.APIHelper;
+import com.linkedin.platform.errors.LIApiError;
+import com.linkedin.platform.listeners.ApiListener;
+import com.linkedin.platform.listeners.ApiResponse;
+
+import org.json.JSONObject;
 
 import timber.log.Timber;
 
@@ -34,6 +43,7 @@ public class HomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
         getTokenAccount();
+        linkededinApiHelper();
 
         // Set a Toolbar to replace the ActionBar.
         toolbar = findViewById(R.id.toolbar);
@@ -41,9 +51,10 @@ public class HomeActivity extends AppCompatActivity {
 
         ActionBar actionbar = getSupportActionBar();
 
-        actionbar.setDisplayHomeAsUpEnabled(true);
-        actionbar.setHomeAsUpIndicator(R.drawable.ic_menu);
-
+        if (actionbar != null) {
+            actionbar.setDisplayHomeAsUpEnabled(true);
+            actionbar.setHomeAsUpIndicator(R.drawable.ic_menu);
+        }
         getSupportFragmentManager().beginTransaction().replace(R.id.content_home,
                 new FirstFragment()).commit();
 
@@ -141,5 +152,44 @@ public class HomeActivity extends AppCompatActivity {
         Intent signOutIntent = new Intent(this, LoginActivity.class);
         signOutIntent.putExtra(SIGN_OUT_ARG, true);
         startActivity(signOutIntent);
+    }
+
+
+    private static final String host = "api.linkedin.com";
+    private static final String url = "https://" + host
+            + "/v1/people/~:" +
+            "(email-address,formatted-name,phone-numbers,picture-urls::(original))";
+
+    public void linkededinApiHelper() {
+        APIHelper apiHelper = APIHelper.getInstance(getApplicationContext());
+        apiHelper.getRequest(HomeActivity.this, url, new ApiListener() {
+            @Override
+            public void onApiSuccess(ApiResponse result) {
+                try {
+                    showResult(result.getResponseDataAsJson());
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onApiError(LIApiError error) {
+
+            }
+        });
+    }
+
+    public void showResult(JSONObject response) {
+
+        try {
+
+            Timber.v("Login:%s", response.get("emailAddress").toString());
+            Timber.v("Login:%s", response.get("formattedName").toString());
+            Timber.v("Login:%s", response.getString("pictureUrl"));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
