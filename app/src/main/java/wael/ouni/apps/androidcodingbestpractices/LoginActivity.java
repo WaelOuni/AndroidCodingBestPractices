@@ -57,6 +57,16 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     public static final String LINKEDIN_TOKEN = "linkedin_token";
     public static final String FACEBOOK_TOKEN = "facebook_token";
     public static final String GOOGLE_ACCOUNT = "google_account";
+
+    private static final String host = "api.linkedin.com";
+    private static final String url = "https://" + host
+            + "/v1/people/~:" +
+            "(email-address,formatted-name,phone-numbers,picture-url)";
+
+
+    private static final int FACEBOOK_CODE = 0;
+    private static final int LINKEDIN_CODE = 1;
+    private static final int GOOGLEPLUS_CODE = 2;
     private static final int RC_SIGN_IN = 11;
     CallbackManager mCallbackManager;
     private ConstraintLayout mLoginLayout;
@@ -69,8 +79,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-        initViews();
-
         // Configure sign-in to request the user's ID, email address, and basic
         // profile. ID and basic profile are included in DEFAULT_SIGN_IN.
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -78,15 +86,16 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                 .build();
         // Build a GoogleSignInClient with the options specified by gso.
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
-        setBlurBackground(mLoginLayout);
         mCallbackManager = CallbackManager.Factory.create();
+        signOutPerform();
+        CheckValidAccountIsConnected();
+        initViews();
+
+        setBlurBackground(mLoginLayout);
         signInFacebook();
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-
+    private void signOutPerform() {
         Intent intent = getIntent();
         if (intent != null) {
             boolean booleanExtra = intent.getBooleanExtra(HomeActivity.SIGN_OUT_ARG, false);
@@ -112,7 +121,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                 //else throw new RuntimeException("Any account signed to the app");
             }
         }
-        CheckValidAccountIsConnected();
     }
 
     /**
@@ -133,13 +141,19 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        CheckValidAccountIsConnected();
         if (requestCode == CallbackManagerImpl.RequestCodeOffset.Login.toRequestCode()) {
             mCallbackManager.onActivityResult(requestCode, resultCode, data);
         } else {
             LISessionManager.getInstance(getApplicationContext()).onActivityResult(this,
                     requestCode, resultCode, data);
         }
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+        if (account != null) {
+            AccountHelper.getInstance().setUserWrapper(new UserWrapper(account.getDisplayName(),
+                    account.getEmail(), account.getPhotoUrl().toString()));
+            RedirectToHomeScreen();
+        }
+
         super.onActivityResult(requestCode, resultCode, data);
     }
 
@@ -166,7 +180,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                 signInGoogle();
                 break;
             case R.id.ignore:
-                GoToHomeScreen();
+                RedirectToHomeScreen();
                 break;
         }
     }
@@ -181,13 +195,15 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         AccessToken currentFacebookAccessToken = AccessToken.getCurrentAccessToken();
         LISession session = LISessionManager.getInstance(getApplicationContext()).getSession();
         if (currentFacebookAccessToken != null) {
-            GoToHomeScreen(currentFacebookAccessToken);
+            facebookRequest(currentFacebookAccessToken);
         } else if (account != null) {
-            GoToHomeScreen(account);
+            AccountHelper.getInstance().setUserWrapper(new UserWrapper(account.getDisplayName(),
+                    account.getEmail(), account.getPhotoUrl().toString()));
+            Timber.v("CheckValidAccountIsConnected: account != null email :%s", account.getEmail());
+            RedirectToHomeScreen();
         } else if (session.isValid()) {
-            GoToHomeScreen(session.getAccessToken());
-        } else {
-//            throw new RuntimeException("Any account supported");
+            linkedInApiHelper();
+        } else {//throw new RuntimeException("Any account supported");
         }
     }
 
@@ -199,43 +215,8 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         mLoginButton.registerCallback(mCallbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(final LoginResult loginResult) {
-                // App code
-                GraphRequest graphRequest = GraphRequest.newMeRequest(
-                        loginResult.getAccessToken(),
-                        new GraphRequest.GraphJSONObjectCallback() {
-                            @Override
-                            public void onCompleted(JSONObject object, GraphResponse response) {
-                                try {
-                                    // Application code
-                                    String id = object.getString("id");
-                                    String email = object.getString("email");
-                                    String name = object.getString("name");
-                                    URL imageURL;
+                facebookRequest(loginResult.getAccessToken());
 
-                                    String token = loginResult.getAccessToken().getToken();
-                                    Timber.v("Login:accessToken %s", token);
-                                    Timber.v("Login:id %s", id);
-                                    Timber.v("Login:email %s", email);
-                                    Timber.v("Login:name %s", name);
-
-                                    try {
-                                        imageURL = new URL("https://graph.facebook.com/me/picture?access_token=" + token);
-                                        Timber.v("Login:picture %s", imageURL.toString());
-                                    } catch (MalformedURLException e) {
-                                        e.printStackTrace();
-                                    }
-
-                                    GoToHomeScreen(loginResult.getAccessToken());
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        });
-
-                Bundle parameters = new Bundle();
-                parameters.putString("fields", "id,name,email");
-                graphRequest.setParameters(parameters);
-                graphRequest.executeAsync();
             }
 
             @Override
@@ -248,6 +229,81 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         });
     }
 
+    private void facebookRequest(final AccessToken accessToken) {
+        // App code
+        GraphRequest graphRequest = GraphRequest.newMeRequest(
+                accessToken,
+                new GraphRequest.GraphJSONObjectCallback() {
+                    @Override
+                    public void onCompleted(JSONObject object, GraphResponse response) {
+                        try {
+                            // Application code
+                            String id = object.getString("id");
+                            String email = object.getString("email");
+                            String name = object.getString("name");
+                            URL imageURL;
+                            String token = accessToken.getToken();
+                            Timber.v("Login:accessToken %s", token);
+                            Timber.v("Login:id %s", id);
+                            Timber.v("Login:email %s", email);
+                            Timber.v("Login:name %s", name);
+                            try {
+                                imageURL = new URL("https://graph.facebook.com/me/" +
+                                        "picture?access_token=" + token);
+                                Timber.v("Login:picture %s", imageURL.toString());
+                                AccountHelper.getInstance().setUserWrapper(new UserWrapper(
+                                        name, email, imageURL.toString()));
+                            } catch (MalformedURLException e) {
+                                e.printStackTrace();
+                            }
+                            RedirectToHomeScreen();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
+        Bundle parameters = new Bundle();
+        parameters.putString("fields", "id,name,email");
+        graphRequest.setParameters(parameters);
+        graphRequest.executeAsync();
+    }
+
+    public void linkedInApiHelper() {
+        APIHelper apiHelper = APIHelper.getInstance(getApplicationContext());
+        apiHelper.getRequest(LoginActivity.this, url, new ApiListener() {
+            @Override
+            public void onApiSuccess(ApiResponse result) {
+                try {
+                    JSONObject responseDataAsJson = result.getResponseDataAsJson();
+                    try {
+                        String emailAddress = responseDataAsJson.get("emailAddress").toString();
+                        Timber.v("Login:%s", emailAddress);
+                        String formattedName = responseDataAsJson.get("formattedName").toString();
+                        Timber.v("Login:%s", formattedName);
+                        String pictureUrl = responseDataAsJson.getString("pictureUrl");
+                        Timber.v("Login:%s", pictureUrl);
+
+                        AccountHelper.getInstance().setUserWrapper(new UserWrapper(formattedName,
+                                emailAddress, pictureUrl));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    // Authentication was successful.  You can now do
+                    // other calls with the SDK.
+                    RedirectToHomeScreen();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onApiError(LIApiError error) {
+
+            }
+        });
+    }
+
     /**
      * Sign in with linkedin account
      */
@@ -256,48 +312,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                 new AuthListener() {
                     @Override
                     public void onAuthSuccess() {
-                        final String host = "api.linkedin.com";
-                        String url ="https://" + host+ "/v1/people/~:(email-address,formatted-name,phone-numbers,picture-urls::(original))";
-                        APIHelper apiHelper = APIHelper.getInstance(getApplicationContext());
-                        apiHelper.getRequest(LoginActivity.this, url, new ApiListener() {
-                            @Override
-                            public void onApiSuccess(ApiResponse apiResponse) {
-                                // Success
-                                JSONObject responseDataAsJson = apiResponse.getResponseDataAsJson();
-                                String response = apiResponse.getResponseDataAsString();
-//                                try {
-//                                    String id = responseDataAsJson.getString("id");
-////                                    String email = responseDataAsJson.getString("email-address");
-//                                    String name = responseDataAsJson.getString("first-name")
-//                                            + " " + responseDataAsJson.getString("last-name");
-//                                    String picUrl = responseDataAsJson.getString("picture-urls::(original)");
-//                                    URL imageURL;
-//
-//                                    Timber.v("Login:id %s", id);
-////                                    Timber.v("Login:email %s", email);
-//                                    Timber.v("Login:name %s", name);
-//                                    try {
-//                                        imageURL = new URL(picUrl);
-//                                        Timber.v("Login:picture %s", imageURL.toString());
-//                                    } catch (MalformedURLException e) {
-//                                        e.printStackTrace();
-//                                    }
-//                                } catch (JSONException e) {
-//                                    e.printStackTrace();
-//                                }
-                            }
-
-                            @Override
-                            public void onApiError(LIApiError liApiError) {
-                                // Error making GET request!
-                            }
-                        });
-
-
-                        // Authentication was successful.  You can now do
-                        // other calls with the SDK.
-                        GoToHomeScreen(LISessionManager.getInstance(getApplicationContext()).
-                                getSession().getAccessToken());
+                        linkedInApiHelper();
                     }
 
                     @Override
@@ -321,45 +336,9 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     }
 
     /**
-     * Redirect to Home screen with facebook access token
-     *
-     * @param accessToken
-     */
-    private void GoToHomeScreen(AccessToken accessToken) {
-        Intent homeIntent = new Intent(LoginActivity.this, HomeActivity.class);
-        homeIntent.putExtra(FACEBOOK_TOKEN, accessToken);
-        startActivity(homeIntent);
-        finish();
-    }
-
-    /**
-     * Redirect to Home screen with linkedin access token
-     *
-     * @param accessToken
-     */
-    private void GoToHomeScreen(com.linkedin.platform.AccessToken accessToken) {
-        Intent homeIntent = new Intent(LoginActivity.this, HomeActivity.class);
-        homeIntent.putExtra(LINKEDIN_TOKEN, accessToken);
-        startActivity(homeIntent);
-        finish();
-    }
-
-    /**
-     * Redirect to Home screen with googlePlus account
-     *
-     * @param account
-     */
-    private void GoToHomeScreen(GoogleSignInAccount account) {
-        Intent homeIntent = new Intent(LoginActivity.this, HomeActivity.class);
-        homeIntent.putExtra(GOOGLE_ACCOUNT, account);
-        startActivity(homeIntent);
-        finish();
-    }
-
-    /**
      * Redirect to Home screen
      */
-    private void GoToHomeScreen() {
+    private void RedirectToHomeScreen() {
         Intent homeIntent = new Intent(LoginActivity.this, HomeActivity.class);
         startActivity(homeIntent);
         finish();
