@@ -7,6 +7,8 @@
     <!-- TODO: Update blank fragment layout -->
     <ImageView
         android:id="@+id/profile_picture"
+        android:scaleType="fitCenter"
+        android:adjustViewBounds="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 

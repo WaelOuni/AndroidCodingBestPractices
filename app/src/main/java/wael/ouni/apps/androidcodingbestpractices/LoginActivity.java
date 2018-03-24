@@ -61,7 +61,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     private static final String host = "api.linkedin.com";
     private static final String url = "https://" + host
             + "/v1/people/~:" +
-            "(email-address,formatted-name,phone-numbers,picture-url)";
+            "(email-address,formatted-name,phone-numbers,public-profile-url,picture-url,picture-urls::(original))";
 
 
     private static final int FACEBOOK_CODE = 0;
@@ -249,7 +249,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                             Timber.v("Login:name %s", name);
                             try {
                                 imageURL = new URL("https://graph.facebook.com/me/" +
-                                        "picture?access_token=" + token);
+                                        "picture?type=large&access_token=" + token);
                                 Timber.v("Login:picture %s", imageURL.toString());
                                 AccountHelper.getInstance().setUserWrapper(new UserWrapper(
                                         name, email, imageURL.toString()));
@@ -278,6 +278,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                     JSONObject responseDataAsJson = result.getResponseDataAsJson();
                     try {
                         String emailAddress = responseDataAsJson.get("emailAddress").toString();
+                        Timber.v("responseDataAsJson:%s", responseDataAsJson.toString());
                         Timber.v("Login:%s", emailAddress);
                         String formattedName = responseDataAsJson.get("formattedName").toString();
                         Timber.v("Login:%s", formattedName);

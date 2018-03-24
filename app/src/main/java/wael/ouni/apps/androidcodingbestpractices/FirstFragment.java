@@ -12,6 +12,8 @@ import com.bumptech.glide.Glide;
 
 import timber.log.Timber;
 
+import static com.bumptech.glide.request.RequestOptions.fitCenterTransform;
+
 /**
  * A simple {@link Fragment} subclass.
  */
@@ -32,7 +34,8 @@ public class FirstFragment extends Fragment {
 
         UserWrapper userWrapper = AccountHelper.getInstance().getUserWrapper();
         Timber.i("onCreate:user : %s", userWrapper.toString());
-        Glide.with(profileImageView).load(userWrapper.getPicturePath()).into(profileImageView);
+        Glide.with(profileImageView).load(userWrapper.getPicturePath())
+                .apply(fitCenterTransform()).into(profileImageView);
         return rootView;
     }
 
