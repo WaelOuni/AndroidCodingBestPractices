@@ -91,6 +91,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         CheckValidAccountIsConnected();
         initViews();
 
+        // FIXME: 25/03/18 check internet connexion before access to social plateforms
         setBlurBackground(mLoginLayout);
         signInFacebook();
     }
